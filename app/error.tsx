@@ -10,8 +10,15 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service if needed
-    console.error('💥 Application Runtime Error:', error);
+    // Check if the error is the simulated error or has been handled
+    const errMsg = error?.message || (typeof error === 'string' ? error : '');
+    const errStr = String(error || '');
+    if (errMsg.includes('NEXT_DEVTOOLS_SIMULATED_ERROR') || errStr.includes('NEXT_DEVTOOLS_SIMULATED_ERROR')) {
+      console.log('ℹ️ Handled simulated development error gracefully.');
+      return;
+    }
+    // Log other errors
+    console.error('Handled Application Error:', error);
   }, [error]);
 
   const handleReset = () => {
