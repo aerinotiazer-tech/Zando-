@@ -34,7 +34,6 @@ CREATE TABLE public.sellers_profiles (
   store_name TEXT NOT NULL,
   description TEXT,
   kyc_status public.kyc_status DEFAULT 'pending'::public.kyc_status NOT NULL,
-  kyc_documents JSONB DEFAULT '{}'::jsonb NOT NULL,
   rating_avg NUMERIC(3, 2) DEFAULT 0.00,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
@@ -193,16 +192,11 @@ CREATE TRIGGER set_conversations_updated_at BEFORE UPDATE ON public.conversation
 
 -- Sync auth.users to public.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 DECLARE
   requested_role public.user_role;
 BEGIN
-  -- Extract role, default to buyer
-  BEGIN
-    requested_role := COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'buyer'::public.user_role);
-  EXCEPTION WHEN OTHERS THEN
-    requested_role := 'buyer'::public.user_role;
-  END;
+  requested_role := COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'buyer'::public.user_role);
   
   -- Security: Prevent users from signing up as admin
   IF requested_role = 'admin'::public.user_role THEN
@@ -217,20 +211,21 @@ BEGIN
     NEW.raw_user_meta_data->>'avatar_url',
     requested_role
   );
-
-  -- Auto-create seller profile if requested
+  
+  -- If seller, we should also create a pending seller profile
   IF requested_role = 'seller'::public.user_role THEN
     INSERT INTO public.sellers_profiles (id, store_name, kyc_status)
     VALUES (
       NEW.id,
-      COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+      COALESCE(NEW.raw_user_meta_data->>'store_name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
       'pending'
     );
   END IF;
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -247,6 +242,23 @@ RETURNS BOOLEAN AS $$
     SELECT 1 FROM public.users WHERE id = user_id AND role = 'admin'
   );
 $$ LANGUAGE sql SECURITY DEFINER;
+
+
+-- Helper function to check if seller has order item (bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION public.seller_has_order_item(order_id UUID)
+RETURNS BOOLEAN AS $
+  SELECT EXISTS (
+    SELECT 1 FROM public.order_items WHERE order_id = $1 AND seller_id = auth.uid()
+  );
+$ LANGUAGE sql SECURITY DEFINER;
+
+-- Helper function to check if buyer owns order (bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION public.buyer_owns_order(order_id UUID)
+RETURNS BOOLEAN AS $
+  SELECT EXISTS (
+    SELECT 1 FROM public.orders WHERE id = $1 AND buyer_id = auth.uid()
+  );
+$ LANGUAGE sql SECURITY DEFINER;
 
 -- Enable RLS on all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -273,6 +285,30 @@ CREATE POLICY "Users can update own profile or admins" ON public.users FOR UPDAT
 CREATE POLICY "Seller profiles are viewable by everyone" ON public.sellers_profiles FOR SELECT USING (true);
 CREATE POLICY "Sellers can update own profile or admins" ON public.sellers_profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin(auth.uid()));
 
+
+-- Seller KYC Table (Private)
+CREATE TABLE public.seller_kyc (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  seller_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  document_type TEXT NOT NULL,
+  document_number TEXT NOT NULL,
+  documents JSONB DEFAULT '{}'::jsonb NOT NULL,
+  status public.kyc_status DEFAULT 'pending'::public.kyc_status NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.seller_kyc ENABLE ROW LEVEL SECURITY;
+
+-- KYC Policies
+CREATE POLICY "Sellers can view own KYC" ON public.seller_kyc FOR SELECT USING (auth.uid() = seller_id);
+CREATE POLICY "Sellers can insert own KYC" ON public.seller_kyc FOR INSERT WITH CHECK (auth.uid() = seller_id);
+CREATE POLICY "Sellers can update own KYC" ON public.seller_kyc FOR UPDATE USING (auth.uid() = seller_id);
+CREATE POLICY "Admins can view all KYC" ON public.seller_kyc FOR SELECT USING (public.is_admin(auth.uid()));
+CREATE POLICY "Admins can update all KYC" ON public.seller_kyc FOR UPDATE USING (public.is_admin(auth.uid()));
+
+
 -- Categories
 CREATE POLICY "Categories are viewable by everyone" ON public.categories FOR SELECT USING (true);
 CREATE POLICY "Only admins can modify categories" ON public.categories FOR ALL USING (public.is_admin(auth.uid()));
@@ -293,19 +329,19 @@ CREATE POLICY "Sellers can manage images for own products" ON public.product_ima
 CREATE POLICY "Users can view own orders or as seller" ON public.orders FOR SELECT USING (
   auth.uid() = buyer_id OR 
   public.is_admin(auth.uid()) OR
-  EXISTS (SELECT 1 FROM public.order_items WHERE order_id = orders.id AND seller_id = auth.uid())
+  public.seller_has_order_item(id)
 );
 CREATE POLICY "Buyers can create orders" ON public.orders FOR INSERT WITH CHECK (auth.uid() = buyer_id);
 CREATE POLICY "Buyers and admins can update orders" ON public.orders FOR UPDATE USING (auth.uid() = buyer_id OR public.is_admin(auth.uid()));
 
 -- Order Items
 CREATE POLICY "Users can view relevant order items" ON public.order_items FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.orders WHERE id = order_items.order_id AND buyer_id = auth.uid()) OR
+  public.buyer_owns_order(order_id) OR
   auth.uid() = seller_id OR
   public.is_admin(auth.uid())
 );
 CREATE POLICY "Buyers can create order items" ON public.order_items FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.orders WHERE id = order_items.order_id AND buyer_id = auth.uid())
+  public.buyer_owns_order(order_id)
 );
 CREATE POLICY "Sellers and admins can update item status" ON public.order_items FOR UPDATE USING (auth.uid() = seller_id OR public.is_admin(auth.uid()));
 
