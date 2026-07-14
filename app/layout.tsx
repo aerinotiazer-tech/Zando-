@@ -1,18 +1,5 @@
 import type {Metadata} from 'next';
-import { Inter, Outfit } from 'next/font/google';
 import './globals.css'; // Global styles
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: {
@@ -76,7 +63,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   };
 
   return (
-    <html lang="fr" className={`${inter.variable} ${outfit.variable}`}>
+    <html lang="fr" className="">
       <body className="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-amber-100 selection:text-amber-900" suppressHydrationWarning>
         <script
           type="application/ld+json"
