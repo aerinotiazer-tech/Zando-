@@ -1,17 +1,15 @@
 import type {Metadata} from 'next';
-import { Inter, Outfit } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css'; // Global styles
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
-  display: 'swap',
 });
 
-const outfit = Outfit({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
-  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -76,8 +74,8 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   };
 
   return (
-    <html lang="fr" className={`${inter.variable} ${outfit.variable}`}>
-      <body className="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-amber-100 selection:text-amber-900" suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <body className="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-amber-100 selection:text-amber-900 min-h-screen flex flex-col" suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
