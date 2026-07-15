@@ -56,8 +56,6 @@ export default function AuthViews({ currentSubView, onNavigate, onLoginSuccess }
   // Custom states for the "Verify Email" screen (from PRD instructions)
   const [verificationEmail, setVerificationEmail] = useState('votre-email@domaine.com');
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotStatus, setForgotStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   // ONBOARDING QUESTION & CONNECTION FLOW
   const [isOnboarding, setIsOnboarding] = useState(false);
@@ -128,7 +126,6 @@ export default function AuthViews({ currentSubView, onNavigate, onLoginSuccess }
         email,
         password,
         options: {
-          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/confirm` : undefined,
           data: {
             full_name: name,
             role: role
@@ -188,50 +185,12 @@ export default function AuthViews({ currentSubView, onNavigate, onLoginSuccess }
     }, 800);
   };
 
-  const handleResendEmail = async () => {
+  const handleResendEmail = () => {
     setResendStatus('sending');
-    setError('');
-    try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        const { error } = await supabase.auth.resend({
-          type: 'signup',
-          email: verificationEmail,
-          options: {
-            emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/confirm` : undefined,
-          }
-        });
-        if (error) throw error;
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+    setTimeout(() => {
       setResendStatus('sent');
       setTimeout(() => setResendStatus('idle'), 3000);
-    } catch (err: any) {
-      console.error('Error resending confirmation email:', err);
-      setError(err.message || 'Erreur lors du renvoi de l\'email');
-      setResendStatus('idle');
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setForgotStatus('sending');
-    try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/api/auth/confirm?next=/?view=reset-password` : undefined,
-        });
-        if (error) throw error;
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-      setForgotStatus('sent');
-    } catch (err: any) {
-      console.error('Password reset error:', err);
-      setError(err.message || 'Échec de l\'envoi de l’email de réinitialisation');
-      setForgotStatus('idle');
-    }
+    }, 1000);
   };
 
   return (
@@ -590,62 +549,38 @@ export default function AuthViews({ currentSubView, onNavigate, onLoginSuccess }
           {currentSubView === 'forgot-password' && (
             <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6 bg-gradient-to-b from-white to-[#FCFAF7]">
               <button 
-                onClick={() => { onNavigate('auth', 'login'); setForgotStatus('idle'); }}
+                onClick={() => onNavigate('auth', 'login')}
                 className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" /> Retour
               </button>
 
-              {forgotStatus === 'sent' ? (
-                <div className="text-center space-y-4 py-4">
-                  <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center mx-auto border border-green-100">
-                    <CheckCircle2 className="w-6 h-6" />
+              <div className="text-center space-y-2">
+                <h1 className="text-xl font-display font-semibold text-slate-950">Mot de passe oublié</h1>
+                <p className="text-xs text-slate-500">Nous vous enverrons un lien de réinitialisation sécurisé.</p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); onNavigate('auth', 'login'); }} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] text-slate-400 uppercase tracking-wide">Adresse email liée</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="email" 
+                      required
+                      placeholder="nom@exemple.com"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#0066FF]"
+                    />
                   </div>
-                  <div className="space-y-1.5">
-                    <h1 className="text-xl font-display font-semibold text-slate-950">Email envoyé !</h1>
-                    <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                      Un lien de réinitialisation de mot de passe sécurisé a été envoyé à l’adresse <span className="font-semibold text-slate-800">{forgotEmail}</span>.
-                    </p>
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    Veuillez cliquer sur ce lien sous 15 minutes pour définir votre nouveau mot de passe.
-                  </p>
                 </div>
-              ) : (
-                <>
-                  <div className="text-center space-y-2">
-                    <h1 className="text-xl font-display font-semibold text-slate-950">Mot de passe oublié</h1>
-                    <p className="text-xs text-slate-500">Nous vous enverrons un lien de réinitialisation sécurisé.</p>
-                  </div>
 
-                  <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] text-slate-400 uppercase tracking-wide">Adresse email liée</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                        <input 
-                          type="email" 
-                          required
-                          value={forgotEmail}
-                          onChange={(e) => setForgotEmail(e.target.value)}
-                          placeholder="nom@exemple.com"
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#0066FF] font-medium"
-                        />
-                      </div>
-                    </div>
-
-                    {error && <p className="text-[11px] text-red-500 font-medium text-center">{error}</p>}
-
-                    <button 
-                      type="submit"
-                      disabled={forgotStatus === 'sending'}
-                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl text-xs font-semibold tracking-wider uppercase transition-colors"
-                    >
-                      {forgotStatus === 'sending' ? 'Envoi du lien...' : 'Envoyer le lien de secours'}
-                    </button>
-                  </form>
-                </>
-              )}
+                <button 
+                  type="submit"
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold tracking-wider uppercase transition-colors"
+                >
+                  Envoyer le lien de secours
+                </button>
+              </form>
             </div>
           )}
 
