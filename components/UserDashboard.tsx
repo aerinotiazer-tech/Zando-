@@ -217,13 +217,15 @@ export default function UserDashboard({
                       <div className="flex items-center justify-between text-xs pb-3 border-b">
                         <div className="space-y-0.5">
                           <span className="font-bold text-slate-900 font-mono">ID: #{order.id}</span>
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(order.createdAt).toLocaleDateString()}</div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1" suppressHydrationWarning><Calendar className="w-3.5 h-3.5" /> {new Date(order.createdAt).toLocaleDateString()}</div>
                         </div>
                         {getOrderStatusBadge(order.status)}
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <Image src={order.items[0]?.image || ''} alt={"preview"} fill referrerPolicy="no-referrer" sizes="100px" className="w-10 h-10 object-cover rounded-lg border relative" />
+                        <div className="w-10 h-10 relative">
+                          <Image src={order.items[0]?.image || ''} alt={"preview"} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg border" />
+                        </div>
                         <div className="text-xs">
                           <div className="font-semibold text-slate-800">{order.items[0]?.productName}</div>
                           <span className="text-slate-400">{order.items.length} article(s) • Total : <strong className="font-mono text-slate-800">{order.totalAmount.toLocaleString()} FCFA</strong></span>
@@ -267,7 +269,9 @@ export default function UserDashboard({
                   {cart.map((item) => (
                     <div key={item.product.id} className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 justify-between">
                       <div className="flex items-center gap-3">
-                        <Image src={item.product.images[0]} alt={item.product.name} fill referrerPolicy="no-referrer" sizes="100px" className="w-12 h-12 object-cover rounded-lg border relative" />
+                        <div className="w-12 h-12 relative">
+                          <Image src={item.product.images[0]} alt={item.product.name} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg border" />
+                        </div>
                         <div className="text-xs">
                           <h4 className="font-semibold text-slate-900 line-clamp-1">{item.product.name}</h4>
                           <span className="text-slate-400">Vendeur : {item.product.sellerName}</span>
@@ -423,7 +427,9 @@ export default function UserDashboard({
                 {favoriteProducts.map((product) => (
                   <div key={product.id} className="bg-white rounded-xl border p-3 flex items-center gap-3 justify-between">
                     <div className="flex items-center gap-3">
-                      <Image src={product.images[0]} alt={product.name} fill referrerPolicy="no-referrer" sizes="100px" className="w-12 h-12 object-cover rounded-lg relative" />
+                      <div className="w-12 h-12 relative">
+                        <Image src={product.images[0]} alt={product.name} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg" />
+                      </div>
                       <div className="text-xs">
                         <h4 className="font-semibold text-slate-900 line-clamp-1">{product.name}</h4>
                         <span className="text-slate-400">Par {product.sellerName}</span>
@@ -469,7 +475,9 @@ export default function UserDashboard({
                       <div className="space-y-0.5">
                         <span className="font-bold text-slate-900 font-mono">CODE COMMANDE: #{order.id}</span>
                         <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" /> Passée le : {new Date(order.createdAt).toLocaleDateString()}
+                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1" suppressHydrationWarning>
+                            <Calendar className="w-3.5 h-3.5" /> Passée le : {new Date(order.createdAt).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
                       {getOrderStatusBadge(order.status)}
@@ -480,7 +488,9 @@ export default function UserDashboard({
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <Image src={item.image} alt={item.productName} fill referrerPolicy="no-referrer" sizes="100px" className="w-10 h-10 object-cover rounded-lg border relative" />
+                            <div className="w-10 h-10 relative">
+                              <Image src={item.image} alt={item.productName} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg border" />
+                            </div>
                             <div className="text-xs">
                               <h4 className="font-semibold text-slate-800 line-clamp-1">{item.productName}</h4>
                               <span className="text-slate-400 font-mono">Quantité : {item.quantity} • Vendu par : {item.sellerId}</span>
@@ -526,7 +536,7 @@ export default function UserDashboard({
                         {notif.title}
                       </div>
                       <p className="text-[11px] text-slate-500 leading-relaxed">{notif.content}</p>
-                      <span className="block text-[9px] text-slate-400 font-mono">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                      <span className="block text-[9px] text-slate-400 font-mono" suppressHydrationWarning>{new Date(notif.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))}

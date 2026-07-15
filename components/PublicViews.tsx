@@ -821,7 +821,7 @@ export default function PublicViews({
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5">
                     <h1 className="text-xl font-display font-semibold text-white">{currentSeller.name}</h1>
-                    {currentSeller.isVerified && <CheckCircle2 className="w-4.5 h-4.5 text-amber-500 fill-amber-50" />}
+                    {currentSeller.isVerified && <CheckCircle2 className="w-5 h-5 text-amber-500 fill-amber-50" />}
                   </div>
                   <p className="text-xs text-slate-300 line-clamp-2 max-w-xl">{currentSeller.description}</p>
                 </div>

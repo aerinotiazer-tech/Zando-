@@ -242,7 +242,7 @@ export default function AdminDashboard({
                     <div className="text-xs space-y-1 bg-slate-50 p-3 rounded-lg border text-slate-600">
                       <div><strong className="text-slate-800">Type de document :</strong> {sub.documentType}</div>
                       <div><strong className="text-slate-800">Numéro de registre officiel :</strong> <span className="font-mono text-slate-700">{sub.documentNumber}</span></div>
-                      <div><strong className="text-slate-800">Soumission le :</strong> {new Date(sub.submittedAt).toLocaleDateString()}</div>
+                      <div suppressHydrationWarning><strong className="text-slate-800">Soumission le :</strong> {new Date(sub.submittedAt).toLocaleDateString()}</div>
                     </div>
 
                     {sub.status === 'pending' && (
@@ -281,7 +281,9 @@ export default function AdminDashboard({
               {products.map((product) => (
                 <div key={product.id} className="p-4 flex items-center gap-4 justify-between text-xs hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <Image src={product.images[0]} alt={"p"} fill referrerPolicy="no-referrer" sizes="100px" className="w-10 h-10 object-cover rounded-lg border relative" />
+                    <div className="w-10 h-10 relative">
+                      <Image src={product.images[0]} alt={"p"} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg border" />
+                    </div>
                     <div>
                       <h4 className="font-bold text-slate-900">{product.name}</h4>
                       <p className="text-[10px] text-slate-400">Vendeur : <strong className="text-slate-600">{product.sellerName}</strong> • {product.category}</p>
@@ -360,7 +362,7 @@ export default function AdminDashboard({
                 {campaigns.map((camp) => (
                   <div key={camp.id} className="bg-white p-4 rounded-xl border shadow-sm text-xs space-y-2">
                     <div className="flex justify-between items-center text-[10px] text-slate-400">
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3 relative" /> {new Date(camp.sentAt).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1" suppressHydrationWarning><Calendar className="w-3 h-3 relative" /> {new Date(camp.sentAt).toLocaleDateString()}</span>
                       <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">{camp.recipientsCount} abonnés</span>
                     </div>
                     <h4 className="font-semibold text-slate-900">{camp.subject}</h4>

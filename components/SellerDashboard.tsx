@@ -304,7 +304,9 @@ export default function SellerDashboard({
                 {sellerProducts.map((product) => (
                   <div key={product.id} className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 justify-between">
                     <div className="flex items-center gap-3">
-                      <Image src={product.images[0]} alt={"prod"} fill referrerPolicy="no-referrer" sizes="100px" className="w-12 h-12 object-cover rounded-lg border relative" />
+                      <div className="w-12 h-12 relative">
+                        <Image src={product.images[0]} alt={"prod"} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-lg border" />
+                      </div>
                       <div className="text-xs">
                         <h4 className="font-semibold text-slate-950 line-clamp-1">{product.name}</h4>
                         <span className="text-[10px] text-slate-400">Stock restant : <strong className="text-slate-800">{product.stock}</strong></span>
@@ -367,7 +369,9 @@ export default function SellerDashboard({
                         {sellerItems.map((item, index) => (
                           <div key={index} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-3">
-                              <Image src={item.image} alt={"item"} fill referrerPolicy="no-referrer" sizes="100px" className="w-8 h-8 object-cover rounded-md relative" />
+                              <div className="w-8 h-8 relative">
+                                <Image src={item.image} alt={"item"} fill referrerPolicy="no-referrer" sizes="100px" className="object-cover rounded-md" />
+                              </div>
                               <div>
                                 <h4 className="font-semibold text-slate-800">{item.productName}</h4>
                                 <span className="text-[10px] text-slate-400">Quantité demandée : {item.quantity}</span>

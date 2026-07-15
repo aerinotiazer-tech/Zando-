@@ -264,9 +264,19 @@ export default function Home() {
     };
 
     setOrders([newOrder, ...orders]);
+    
+    // Update product stock
+    setProducts(products.map(p => {
+      const cartItem = cart.find(ci => ci.product.id === p.id);
+      if (cartItem) {
+        return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
+      }
+      return p;
+    }));
+
     handleClearCart();
 
-    if (currentUser) {
+    if (currentUser && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       const { api } = await import('../lib/api');
       await api.createOrder(newOrder, items);
     }
@@ -275,11 +285,23 @@ export default function Home() {
       id: `notif-${Date.now()}`,
       userId: currentUser?.id || 'user-buyer-1',
       title: 'Commande reçue',
-      content: `Votre commande ${newOrder.id} a été enregistrée. Les artisans préparent vos colis !`,
+      content: `Votre commande ${newOrder.id} a été enregistrée. Nos coursiers à Niamey s'occupent du reste !`,
       isRead: false,
       createdAt: new Date().toISOString()
     };
     setNotifications([notif, ...notifications]);
+    
+    // Also notify sellers
+    const sellerIds = Array.from(new Set(items.map(i => i.sellerId)));
+    const sellerNotifs = sellerIds.map(sid => ({
+      id: `notif-${Date.now()}-${sid}`,
+      userId: sid,
+      title: 'Nouvelle vente !',
+      content: `Vous avez reçu une nouvelle commande (${newOrder.id}). Veuillez la préparer rapidement.`,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    }));
+    setNotifications(prev => [...sellerNotifs, ...prev]);
   };
 
   const handleAddReview = (productId: string, review: Review) => {
@@ -416,13 +438,27 @@ export default function Home() {
     setSellers(sellers.map(s => s.id === 'seller-alaza' ? { ...s, ...settingsData } : s));
   };
 
-  const handleApproveKYC = (subId: string) => {
+  const handleApproveKYC = async (subId: string) => {
     const target = kycSubmissions.find(sub => sub.id === subId);
     if (!target) return;
 
     setKycSubmissions(kycSubmissions.map(sub => sub.id === subId ? { ...sub, status: 'approved' } : sub));
     setSellers(sellers.map(s => s.id === target.sellerId ? { ...s, isVerified: true } : s));
     setProducts(products.map(p => p.sellerId === target.sellerId ? { ...p, sellerVerified: true } : p));
+    
+    // Update user role if they were previously just a buyer
+    setUsers(users.map(u => u.id === target.sellerId ? { ...u, role: 'seller' } : u));
+
+    // Send notification to seller
+    const notif: Notification = {
+      id: `notif-${Date.now()}`,
+      userId: target.sellerId,
+      title: 'KYC Approuvé !',
+      content: 'Félicitations, votre identité a été vérifiée. Vous êtes désormais un Vendeur Certifié Zando.',
+      isRead: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications([notif, ...notifications]);
   };
 
   const handleRejectKYC = (subId: string) => {
@@ -487,7 +523,7 @@ export default function Home() {
               className="relative p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-slate-50 transition-colors"
               title="Favoris"
             >
-              <Heart className="w-4.5 h-4.5" />
+              <Heart className="w-5 h-5" />
               {favorites.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full font-mono scale-90">
                   {favorites.length}
@@ -501,7 +537,7 @@ export default function Home() {
               className="relative p-2 text-slate-500 hover:text-amber-600 rounded-full hover:bg-slate-50 transition-colors"
               title="Panier"
             >
-              <ShoppingBag className="w-4.5 h-4.5" />
+              <ShoppingBag className="w-5 h-5" />
               {cart.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-amber-500 text-slate-950 text-[8px] font-black px-1.5 py-0.5 rounded-full font-mono leading-none">
                   {cart.length}
